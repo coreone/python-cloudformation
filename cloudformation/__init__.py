@@ -63,10 +63,13 @@ class Template(defaultdict):
         return json.JSONEncoder(indent=2 if pretty else None,
                                 sort_keys=True).encode(self)
 
-    def ref_user_data(self, *args):
+    def _gen_res_data(self, userdata=True, *args):
         """
         Write out the appropriate function calls and references to pass user
         data to an instance.  Do not call this before calling add_user_data.
+        The second parameter determines whether we are returning a UserData
+        entry or a CF::Init config file entry.  Both are generated the same way,
+        except the config file entry does not get base64 encoded.
 
         This method skimps on error checking so make sure you pass the same
         number of arguments as there are interpolation markers in the user
@@ -86,4 +89,22 @@ class Template(defaultdict):
                     if line[i] is None:
                         line[i] = iterargs.next()
                 lines.append({'Fn::Join': ['', line]})
-        return {'Fn::Base64': {'Fn::Join': ['\n', lines]}}
+
+        if (userdata):
+            return {'Fn::Base64': {'Fn::Join': ['\n', lines]}}
+        else:
+            return {'Fn::Join': ['\n', lines]}
+
+    def ref_user_data(self, *args):
+        """
+        Write out the appropriate function calls and references to pass user
+        data to an instance.  Do not call this before calling add_user_data.
+        """
+        return self._gen_res_data(True, *args)
+
+    def ref_user_file(self, *args):
+        """
+        Write out the appropriate function calls and references to pass user
+        file to an instance.  Do not call this before calling add_user_data.
+        """
+        return self._gen_res_data(False, *args)
